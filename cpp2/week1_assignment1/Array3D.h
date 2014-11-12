@@ -1,37 +1,105 @@
 #pragma once
+#include <cstdarg>
 
-template <typename T>
+template <typename T, int n>
 class Array3D
 {
 private:
 	T *_data;
-	int _x_size;
-	int _y_size;
-	int _z_size;
+	int _sizes[n];
 	size_t _size;
-	unsigned int index(int x, int y, int z) const { return _y_size * _x_size * z + _x_size * y + x; };
+	unsigned int index(int params...) { 
+		if (sizeof(&params) >= n) {
+			int result = 0;
+			for (int i = 0; i < n; i++) {
+				int iResult = 1;
+				for (int j = 0; j < i; j++) iResult *= _sizes[j];
+				int b = (&params)[i];
+				result += iResult * b;
+			}
+			return result;
+		}
+		throw;
+	};
 
 public:
-	Array3D<T>() : Array3D<T>(0,0,0) { }; // default constructor
-	Array3D<T>(const int &x_size, const int &y_size, const int &z_size) : _x_size(x_size), _y_size(y_size), _z_size(z_size), _size(x_size*y_size*z_size) { _data = new T[_size]; }; // prefered constructor
-	Array3D<T>(Array3D<T> &&instance) {
+	Array3D<T, n>() : Array3D<T, n>(0, 0, 0) { }; // default constructor
 
-	}// move constructor
-	Array3D<T>(const Array3D<T> &instance) {
+	// prefered constructor
+	Array3D<T, n>(const int params...) {
+		int a = n;
+		if (sizeof(&params) >= a) {
+			_size = 1;
+			for (int i = 0; i < a; i++) {
+				const int b = (&params)[i];
+				_sizes[i] = b;
+				_size *= b;
+			}
+			_data = new T[_size];
+		}
+		else throw;
+	}; 
+	
+	// move constructor
+	Array3D<T, n>(Array3D<T, n> &&instance) {
+		_data = instance._data;
+		_size = instance._size;
+		_sizes = instance._sizes;
+		instance._data = nullptr;
+		instance._size = 0;
+		instance._sizes = int[n];
+	}
 
-	} // copy
-	Array3D<T> &operator=(Array3D<T> &instance) {
+	// copy constructor
+	Array3D<T, n>(const Array3D<T, n> &instance) {
+		_data = new T[instance._size];
+		for (int i = 0; i < instance._size; i++) {
+			_data[i] = instance._data[i];
+		}
 
-	} // copy assignment
-	Array3D<T> operator=(Array3D<T> &&instance) {
+		_size = instance._size;
+		_sizes = instance._sizes;
+	}
 
-	}// move assignment
-	virtual ~Array3D<T>() {
+	// copy assignment
+	Array3D<T, n> &operator=(Array3D<T, n> &instance) {
+		if (&instance == this)
+			return *this;
+
+		if (instance._size != _size) 
+			_data = new T[instance._size];
+
+		for (int i = 0; i < instance._size; i++) {
+			_data[i] = instance._data[i];
+		}
+
+		_size = instance._size;
+		_sizes = instance._sizes;
+
+		return *this;
+	} 
+
+	// move assignment
+	Array3D<T, n> operator=(Array3D<T, n> &&instance) {
+		if (&instance == this)
+			return *this;
+
+		_data = instance._data;
+		_size = instance._size;
+		_sizes = instance._sizes;
+		instance._data = nullptr;
+		instance._size = 0;
+		instance._sizes = int[n];
+
+		return *this;
+	}
+
+	virtual ~Array3D<T, n>() {
 		delete[] _data;
 	};
 	void put(const int &x, const int &y, const int &z, const T value) {
 		unsigned int indexP = index(x, y, z);
-
+		
 		if (indexP < _size)
 			_data[indexP] = value;
 	}
